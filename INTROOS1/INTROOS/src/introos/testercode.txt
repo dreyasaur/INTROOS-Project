@@ -1,0 +1,52 @@
+
+        Runtime runtime = Runtime.getRuntime();
+        long total, free, used;
+        int mb = 1024*1024;
+
+        total = runtime.totalMemory();
+        free = runtime.freeMemory();
+        used = total - free;
+        System.out.println("\nTotal Memory: " + total / mb + "MB");
+        System.out.println(" Memory Used: " + used / mb + "MB");
+        System.out.println(" Memory Free: " + free / mb + "MB");
+        System.out.println("Percent Used: " + ((double)used/(double)total)*100 + "%");
+        System.out.println("Percent Free: " + ((double)free/(double)total)*100 + "%");
+        
+        //
+        
+        
+        OperatingSystemMXBean operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean();
+        long free = 0, total = 0;
+        int level = 0;
+        
+        for (Method method : operatingSystemMXBean.getClass().getDeclaredMethods()) {
+            method.setAccessible(true);
+        if (method.getName().startsWith("get") 
+            && Modifier.isPublic(method.getModifiers()))
+            {
+                Object value;
+                try
+                {
+                    value = method.invoke(operatingSystemMXBean);
+                    level++;
+                }
+                catch (Exception e)
+                {
+                    value = e;
+                } // try
+                System.out.println(method.getName() + " = " + value);
+                if(level == 2)
+                {
+                    free = (long)value;
+                    System.out.println(">TEST:free: "+free);
+                }
+                if(level == 7)
+                {
+                    total = (long)value;
+                    System.out.println(">TEST:total: "+total);
+                    System.out.println("Physical Memory: "+(long)((float)free/total*100)+"%");
+                }
+            } // if
+        } // for
+        
+        //

@@ -1,42 +1,66 @@
 import java.io.*;
 import javax.swing.*;
 import javax.swing.table.*;
-import java.util.ArrayList;
+import java.awt.*;
 
 public class FileAccess
 {
     private JTable table;
-
+    private Object[][] container = new Object[0][];
+    private String[] header = new String[]
+    {
+        "Image Name",
+        "PID",
+        "Session Name",
+        "Session Number",
+        "Memory Usage",
+        "Status",
+        "Username",
+        "CPU Time",
+        "Windows Title"
+    };
+        
     public FileAccess()
     {
     	;
     }
     
-    public JTable getList()
+    public JTable getList(Process P)
     {
-        String[] header = new String[]
-        {
-            "Image Name",
-            "PID",
-            "Session Name",
-            "Session Number",
-            "Memory Usage",
-            "Status",
-            "Username",
-            "CPU Time",
-            "Windows Title"
-        };
-        
         try
     	{
-    		Process p = Runtime.getRuntime().exec(System.getenv("windir") + "\\system32\\" + "tasklist.exe /fi \"username eq alicbusanR\" /fo csv /v /nh");
-            return new JTable(new DefaultTableModel(getTable(p), header)
+    		Process p = P;
+
+            table = new JTable(new DefaultTableModel(getTable(p), header)
             {
                 public boolean isCellEditable(int row, int column)
                 {
                     return false;
                 }
             });
+            
+            table.setAutoCreateRowSorter(true);
+            table.getRowSorter().toggleSortOrder(table.getColumn("Image Name").getModelIndex());
+            
+            //table.removeColumn(table.getColumnModel().getColumn(1));
+            ((DefaultTableCellRenderer)table.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(JLabel.LEFT);
+            table.getColumnModel().getColumn(0).setPreferredWidth(150);
+            table.getColumnModel().getColumn(1).setPreferredWidth(50);
+            table.getColumnModel().getColumn(2).setPreferredWidth(120);
+            table.getColumnModel().getColumn(3).setPreferredWidth(120);
+            table.getColumnModel().getColumn(4).setPreferredWidth(120);
+            table.getColumnModel().getColumn(5).setPreferredWidth(100);
+            table.getColumnModel().getColumn(6).setPreferredWidth(200);
+            table.getColumnModel().getColumn(7).setPreferredWidth(100);
+            table.getColumnModel().getColumn(8).setPreferredWidth(300);
+            table.setRowHeight(15);
+            table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+            table.setSelectionForeground(Color.WHITE);
+            table.setSelectionBackground(Color.GRAY);
+            table.setSelectionMode(0);
+            table.setRowSelectionInterval(0, 0);
+            
+            return table;
     	}
         catch(Exception err)
         {
@@ -46,12 +70,11 @@ public class FileAccess
         return null;
     }
     
-    public Object[][] getTable(Process p)
+    public Object[][] getTable(Process P)
     {
-        BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
-    	Object[][] container = new Object[0][],
-                   temp;
-        String process;
+        BufferedReader input = new BufferedReader(new InputStreamReader(P.getInputStream()));
+        Object[][] temp;
+    	String process;
 
         try
         {
@@ -70,7 +93,7 @@ public class FileAccess
                     ii = process.indexOf(',', i);
                     if(ii != -1)
                     {
-                        if(col == 5)
+                        if(col == 5 && process.charAt(process.indexOf(',', (ii))-1) != 34)
                             ii = process.indexOf(',', (ii+1));
                         line[col-1] = process.substring(i+1, ii-1);
                     }
@@ -79,23 +102,68 @@ public class FileAccess
                     i = ii+1;
                 } while(i != 0);
                 
-                //Marker: Incremental Problem
                 temp = new Object[row][];
-                if(row > 1)
-                    for(int x = 0; x < container.length; x++)
-                        for(int y = 0; y < 9; y++)
-                            System.out.println(">x: "+x+" y: "+y+" : "+container[x][y]);
-                if(temp.length != 0)
-                    System.arraycopy(container, 0, temp, 0, row-1);
+                for(int x = 0; x < row-1; x++)
+                    temp[x] = container[x].clone();
                 temp[row-1] = line;
-                container = temp;
-                for(int x = 0; x < temp.length; x++)
-                    for(int y = 0; y < 9; y++)
-                        System.out.println("<x: "+x+" y: "+y+" : "+temp[x][y]);
+                container = new Object[row][];
+                for(int x = 0; x < row; x++)
+                    container[x] = temp[x].clone();
             }
             input.close();
             
             return container;
+        }
+        catch(Exception err)
+        {
+        	err.printStackTrace();
+        }
+        return null;
+    }
+    
+    public int getRowCount(Process P)
+    {
+        int count = 0;
+        try
+    	{
+            BufferedReader input = new BufferedReader(new InputStreamReader(P.getInputStream()));
+            String process;
+            while((process = input.readLine()) != null)
+                count++;
+        }
+        catch(Exception err)
+        {
+        	err.printStackTrace();
+        }
+        return count;
+    }
+    
+    public static boolean isProcessRunning(Process P, String servicePID) throws Exception
+    {
+        Process p = P;
+        BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        String process;
+ 
+        while ((process = reader.readLine()) != null)
+        {
+            if (process.contains(",\""+servicePID+"\","))
+                return true;
+        }
+
+        return false;
+    }
+
+    public static void killProcess(String servicePID) throws Exception
+    {
+        Runtime.getRuntime().exec("taskkill /F /PID "+servicePID);
+        JOptionPane.showMessageDialog(null, ("Process Ended: "+servicePID), "InfoBox: Kill Process", JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    public Process getProcess()
+    {
+        try
+        {
+            return Runtime.getRuntime().exec(System.getenv("windir") + "\\system32\\" + "tasklist.exe /fo csv /v /nh");
         }
         catch(Exception err)
         {
