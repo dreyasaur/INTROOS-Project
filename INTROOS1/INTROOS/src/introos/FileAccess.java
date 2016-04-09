@@ -41,6 +41,7 @@ public class FileAccess
             
             table.setAutoCreateRowSorter(true);
             table.getRowSorter().toggleSortOrder(table.getColumn("Image Name").getModelIndex());
+            table.getRowSorter().toggleSortOrder(table.getColumn("Image Name").getModelIndex());
             
             //table.removeColumn(table.getColumnModel().getColumn(1));
             ((DefaultTableCellRenderer)table.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(JLabel.LEFT);
@@ -138,15 +139,14 @@ public class FileAccess
         return count;
     }
     
-    public static boolean isProcessRunning(Process P, String servicePID) throws Exception
+    public boolean isProcessRunning(Process P, String servicePID) throws Exception
     {
-        Process p = P;
-        BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(P.getInputStream()));
         String process;
  
-        while ((process = reader.readLine()) != null)
+        while((process = reader.readLine()) != null)
         {
-            if (process.contains(",\""+servicePID+"\","))
+            if(process.contains(",\""+servicePID+"\","))
                 return true;
         }
 
@@ -156,7 +156,6 @@ public class FileAccess
     public static void killProcess(String servicePID) throws Exception
     {
         Runtime.getRuntime().exec("taskkill /F /PID "+servicePID);
-        JOptionPane.showMessageDialog(null, ("Process Ended: "+servicePID), "InfoBox: Kill Process", JOptionPane.INFORMATION_MESSAGE);
     }
     
     public Process getProcess()
